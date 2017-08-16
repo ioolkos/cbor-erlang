@@ -17,7 +17,7 @@ encode(neginf) -> <<16#f9, 16#fc, 0>>;
 encode(nan) -> <<16#f9, 16#fc, 1>>;
 encode(Num) when is_integer(Num) -> encode_num(Num);
 encode(Float) when is_float(Float) -> encode_float(Float);
-encode(Bin) when is_binary(Bin) -> encode_bin(Bin);
+encode(Bin) when is_binary(Bin) -> encode_text(Bin);
 encode(List) when is_list(List) -> [<<16#9f>>, lists:map(fun encode/1, List), <<16#ff>>];
 encode(Map) when is_map(Map) ->
     [<<16#bf>>, lists:map(fun({K, V}) -> [encode(K), encode(V)] end, maps:to_list(Map)), <<16#ff>>];
@@ -61,6 +61,13 @@ encode_bin(Bin) when byte_size(Bin) =< ?MAX_2BYTE -> [<<16#59, (byte_size(Bin)):
 encode_bin(Bin) when byte_size(Bin) =< ?MAX_4BYTE -> [<<16#5a, (byte_size(Bin)):32>>, Bin];
 encode_bin(Bin) when byte_size(Bin) =< ?MAX_8BYTE -> [<<16#5b, (byte_size(Bin)):64>>, Bin];
 encode_bin(_) -> throw(not_implemented).
+
+encode_text(Bin) when byte_size(Bin) =< 16#17 -> [<<(byte_size(Bin) + 16#60)>>, Bin];
+encode_text(Bin) when byte_size(Bin) =< ?MAX_1BYTE -> [<<16#78, (byte_size(Bin)):8>>, Bin];
+encode_text(Bin) when byte_size(Bin) =< ?MAX_2BYTE -> [<<16#79, (byte_size(Bin)):16>>, Bin];
+encode_text(Bin) when byte_size(Bin) =< ?MAX_4BYTE -> [<<16#7a, (byte_size(Bin)):32>>, Bin];
+encode_text(Bin) when byte_size(Bin) =< ?MAX_8BYTE -> [<<16#7b, (byte_size(Bin)):64>>, Bin];
+encode_text(_) -> throw(not_implemented).
 
 encode_tag(N, Data) when N =< 16#17 ->
     [<<(N + 16#c0)>>, encode(Data)];
